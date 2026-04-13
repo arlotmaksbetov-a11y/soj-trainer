@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Инженерный тренажер СОЖ</title>
+    <style>
+        :root {
+            --bg-color: #f4f7f9;
+            --panel-bg: #ffffff;
+            --accent-color: #4a90e2;
+            --text-main: #2c3e50;
+            --text-muted: #7f8c8d;
+            --border-color: #dcdde1;
+            --success: #27ae60;
+            --warning: #e67e22;
+            --danger: #e74c3c;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background: var(--bg-color); 
+            color: var(--text-main);
+            margin: 0; padding: 20px; 
+        }
+
+        .app-container { 
+            max-width: 1000px; margin: 0 auto; 
+            background: var(--panel-bg); 
+            padding: 40px; border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05); 
+        }
+
+        header { border-bottom: 2px solid var(--bg-color); margin-bottom: 30px; padding-bottom: 20px; }
+        h1 { margin: 0; font-size: 24px; color: var(--accent-color); }
+        .subtitle { color: var(--text-muted); font-size: 14px; }
+
+        .workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+
+        .input-group { margin-bottom: 20px; position: relative; }
+        label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+        
+        /* Интерактивные подсказки */
+        .tooltip-icon {
+            display: inline-block; width: 16px; height: 16px; background: var(--border-color);
+            color: white; border-radius: 50%; text-align: center; font-size: 12px;
+            cursor: help; margin-left: 5px; position: relative;
+        }
+        .tooltip-icon:hover::after {
+            content: attr(data-tip); position: absolute; left: 25px; top: 0;
+            background: #333; color: white; padding: 8px; border-radius: 4px;
+            width: 200px; z-index: 10; font-weight: normal; font-size: 12px;
+        }
+
+        select, input[type="range"] { 
+            width: 100%; padding: 12px; border-radius: 8px; 
+            border: 1px solid var(--border-color); background: #f9f9f9;
+        }
+
+        .monitor { 
+            background: #f8f9fa; border-radius: 12px; padding: 25px; 
+            border: 1px solid var(--border-color);
+        }
+
+        .status-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 20px;
+            font-size: 12px; font-weight: bold; text-transform: uppercase; margin-bottom: 15px;
+        }
+
+        .temp-scale { height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin: 15px 0; }
+        #tempFill { height: 100%; width: 0%; transition: width 0.5s ease, background 0.5s ease; }
+
+        .report-card { 
+            margin-top: 20px; padding: 15px; background: white; 
+            border-radius: 8px; border-left: 4px solid var(--accent-color);
+        }
+
+        .btn-calc { 
+            background: var(--accent-color); color: white; border: none; 
+            padding: 15px 30px; border-radius: 8px; cursor: pointer; 
+            font-weight: bold; width: 100%; transition: transform 0.2s;
+        }
+        .btn-calc:hover { transform: translateY(-2px); opacity: 0.9; }
+
+        .metric { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+        .metric b { color: var(--accent-color); }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <header>
+        <h1>Тренажер оператора-наладчика</h1>
+        <div class="subtitle">Индивидуальный проект: Оптимизация выбора СОЖ и режимов резания</div>
+    </header>
+
+    <div class="workspace">
+        <div class="controls">
+            <div class="input-group">
+                <label>Материал заготовки <span class="tooltip-icon" data-tip="От материала зависит теплопроводность и склонность к налипанию на резец.">?</span></label>
+                <select id="material">
+                    <option value="steel">Сталь 45 (Конструкционная)</option>
+                    <option value="aluminum">Алюминий (Д16)</option>
+                    <option value="titanium">Титан (ВТ6 - Вязкий)</option>
+                    <option value="castiron">Чугун СЧ20 (Хрупкий)</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Операция <span class="tooltip-icon" data-tip="Черновые операции требуют охлаждения, резьбонарезание — смазки.">?</span></label>
+                <select id="operation">
+                    <option value="turning">Точение (Черновое)</option>
+                    <option value="milling">Фрезерование (Скоростное)</option>
+                    <option value="drilling">Глубокое сверление</option>
+                    <option value="threading">Нарезание резьбы</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Способ подачи СОЖ <span class="tooltip-icon" data-tip="MQL снижает расход, затопление лучше всего отводит тепло.">?</span></label>
+                <select id="delivery">
+                    <option value="flood">Затопление (Полив)</option>
+                    <option value="mql">MQL (Минимальное кол-во)</option>
+                    <option value="jet">Струйная под давлением</option>
+                    <option value="dry">Сухая обработка</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>Скорость резания: <span id="speedVal">100</span> м/мин</label>
+                <input type="range" id="speed" min="20" max="350" value="100" oninput="document.getElementById('speedVal').innerText=this.value">
+            </div>
+
+            <button class="btn-calc" onclick="runSimulation()">ЗАПУСТИТЬ АНАЛИЗ</button>
+        </div>
+
+        <div class="monitor">
+            <div id="badge" class="status-badge" style="background:#eee">Готов к работе</div>
+            
+            <label>Температурная нагрузка:</label>
+            <div class="temp-scale">
+                <div id="tempFill" style="background: var(--success); width: 0%;"></div>
+            </div>
+            <div class="metric"><span>Температура:</span> <b id="outTemp">-- °C</b></div>
+
+            <div id="reportArea" class="report-card" style="display:none">
+                <div class="metric"><span>Рекомендованная СОЖ:</span> <b id="outCoj">--</b></div>
+                <div class="metric"><span>Тип состава:</span> <b id="outType">--</b></div>
+                <div class="metric"><span>Расход жидкости:</span> <b id="outFlow">-- л/ч</b></div>
+                <p id="outWarning" style="color: var(--danger); font-size: 13px; font-weight: bold;"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const db = [
+    { name: "Техмол-1", type: "Эмульсия", targets: ['steel', 'castiron'], safety: "ГОСТ 12.1" },
+    { name: "Alu-Cut Pro", type: "Синтетика", targets: ['aluminum'], safety: "Биостойкая" },
+    { name: "Heavy-Oil 50", type: "Масляная", targets: ['titanium', 'threading'], safety: "Пожароопасно" },
+    { name: "Universal-S", type: "Полусинтетика", targets: ['steel', 'milling'], safety: "Эко-безопасно" }
+];
+
+function runSimulation() {
+    const mat = document.getElementById('material').value;
+    const speed = parseInt(document.getElementById('speed').value);
+    const deliv = document.getElementById('delivery').value;
+    const op = document.getElementById('operation').value;
+
+    // Расчет температуры (упрощенная модель)
+    let baseK = mat === 'titanium' ? 2.8 : (mat === 'steel' ? 1.5 : 1.0);
+    let coolK = deliv === 'flood' ? 0.85 : (deliv === 'mql' ? 0.4 : (deliv === 'dry' ? 0 : 0.6));
+    let temp = Math.round(20 + (speed * baseK * (1 - coolK)));
+
+    // Обновление интерфейса
+    document.getElementById('reportArea').style.display = 'block';
+    document.getElementById('outTemp').innerText = temp + ' °C';
+    
+    const fill = document.getElementById('tempFill');
+    fill.style.width = Math.min(temp/10, 100) + '%';
+    fill.style.background = temp > 600 ? 'var(--danger)' : (temp > 350 ? 'var(--warning)' : 'var(--success)');
+
+    // Логика выбора СОЖ
+    let rec = db.find(c => c.targets.includes(mat)) || db[0];
+    document.getElementById('outCoj').innerText = rec.name;
+    document.getElementById('outType').innerText = rec.type;
+    document.getElementById('outFlow').innerText = (deliv === 'dry' ? 0 : (speed * 0.04)).toFixed(1);
+
+    // Предупреждения
+    let warn = "";
+    if (temp > 750) warn = "КРИТИЧЕСКИЙ ПЕРЕГРЕВ! Снизьте скорость.";
+    if (mat === 'castiron' && deliv !== 'dry') warn = "ВНИМАНИЕ: Чугун обычно обрабатывают всухую.";
+    if (op === 'threading' && deliv === 'mql') warn = "ОШИБКА: Для резьбы нужна обильная смазка.";
+    
+    document.getElementById('outWarning').innerText = warn;
+    
+    const badge = document.getElementById('badge');
+    badge.innerText = warn ? "Требует внимания" : "Параметры в норме";
+    badge.style.background = warn ? 'var(--warning)' : 'var(--success)';
+    badge.style.color = 'white';
+}
+</script>
+
+</body>
+</html>
